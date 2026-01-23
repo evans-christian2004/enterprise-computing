@@ -1,8 +1,5 @@
 package com.nile.inventory;
 import java.util.HashMap;
-import com.nile.storeItem.storeItem;
-
-import java.util.Map;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

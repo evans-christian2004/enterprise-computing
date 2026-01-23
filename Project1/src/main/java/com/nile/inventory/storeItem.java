@@ -1,4 +1,4 @@
-package com.nile.storeItem;
+package com.nile.inventory;
 
 public class storeItem {
    public String ID;

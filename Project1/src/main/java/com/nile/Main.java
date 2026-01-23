@@ -9,5 +9,6 @@ import java.util.Arrays;
 public class Main {
     public static void main(String[] args) {
         Inventory nileInventory = new Inventory("src/inventory.csv");
+
     }
 }
