@@ -1,17 +1,21 @@
 package com.nile.inventory;
 
-public class storeItem {
-   public String ID;
+public class StoreItem {
+   private String ID;
    public String description;
    public boolean isInStock;
-   public int stock;
+   private int stock;
    public double price;
 
-   public storeItem(String ID, String description,boolean isInStock, int stock,double price){
+   public StoreItem(String ID, String description, boolean isInStock, int stock, double price){
        this.ID = ID;
        this.description = description;
        this.isInStock = isInStock;
        this.stock = stock;
        this.price = price;
+   }
+
+   public String getID(){
+       return ID;
    }
 }
