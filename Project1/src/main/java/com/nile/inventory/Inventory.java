@@ -7,11 +7,13 @@ import java.io.IOException;
 
 public class Inventory {
     private String path;
+    private double[] discounts;
     private HashMap<String, StoreItem> inventory;
     private int size;
 
-    public Inventory(String path){
+    public Inventory(String path, double[] discounts){
         this.path = path;
+        this.discounts = discounts;
         String line = "";
         inventory = new HashMap<String, StoreItem>();
 
@@ -34,9 +36,15 @@ public class Inventory {
         }
     }
 
+    public double[] getDiscounts(){
+        return discounts;
+    }
+
     // returns an item from the inventory
     public StoreItem getByID(String ID) {
         return inventory.get(ID);
     }
+
+
 }
 

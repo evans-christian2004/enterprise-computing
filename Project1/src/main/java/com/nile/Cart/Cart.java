@@ -1,4 +1,5 @@
 package com.nile.Cart;
+import com.nile.inventory.Inventory;
 import com.nile.inventory.StoreItem;
 
 import java.util.Stack;
@@ -8,19 +9,29 @@ public class Cart {
     private double cartTotal;
     private int maxCartSize;
 
-    Cart(int maxCartSize){
+    public Cart(int maxCartSize){
         cartItems = new Stack<CartItem>();
         cartTotal = 0.00;
         this.maxCartSize = maxCartSize;
     }
 
-    public boolean addToCart(StoreItem selectedItem, int quantity){
+    public boolean addToCart(Inventory inventory, StoreItem selectedItem, int quantity){
         if(!selectedItem.isInStock || cartItems.size() >= maxCartSize){
             return false;
         } else {
-            CartItem item = new CartItem(selectedItem, quantity);
+            CartItem item = new CartItem(inventory, selectedItem, quantity);
             cartItems.push(item);
             cartTotal+=item.itemPrice;
+            return true;
+        }
+    }
+
+    public boolean removeFromCart(){
+        if (cartItems.size() <= 0){
+            return false;
+        } else {
+            CartItem temp = cartItems.pop();
+            cartTotal -= temp.itemPrice;
             return true;
         }
     }
@@ -30,6 +41,6 @@ public class Cart {
     }
 
     public CartItem[] getItems(){
-        return (CartItem[]) cartItems.toArray();
+        return (CartItem[])cartItems.toArray();
     }
 }

@@ -1,10 +1,13 @@
 package com.nile;
+import com.nile.Cart.Cart;
 import com.nile.inventory.Inventory;
 
 public class Main {
     public static void main(String[] args) {
-        Inventory nileInventory = new Inventory("src/inventory.csv");
+        double[] discounts = {0.0, .1, .15, .2};
+        Inventory nileInventory = new Inventory("src/inventory.csv", discounts);
+        Cart userCart = new Cart(5);
 
-        System.out.println(nileInventory.getByID("4452").description);
+        GUI gui = new GUI(nileInventory, userCart);
     }
 }

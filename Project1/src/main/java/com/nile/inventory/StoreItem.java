@@ -18,4 +18,8 @@ public class StoreItem {
    public String getID(){
        return ID;
    }
+
+   public int getStock(){
+       return stock;
+   }
 }
