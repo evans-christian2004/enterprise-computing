@@ -11,21 +11,22 @@ import javax.swing.*;
 import javax.swing.border.*;
 
 public class GUI extends JFrame implements ActionListener {
+    private final int FEILD_WIDTH = 35;
     private Cart cart;
     private Inventory inventory;
 
     // --- components ---
     private JLabel itemInputLabel = new JLabel("Enter item ID for Item #1:");
-    private JTextField itemInputField = new JTextField(40);
+    private JTextField itemInputField = new JTextField(FEILD_WIDTH);
 
     private JLabel itemQuantityInputLabel = new JLabel("Enter quantity for Item #1:");
-    private JTextField itemQuantityInputField = new JTextField(40);
+    private JTextField itemQuantityInputField = new JTextField(FEILD_WIDTH);
 
     private JLabel itemDetailsLabel = new JLabel("Details for Item #1:");
-    private JTextField itemDetailsField = new JTextField(40);
+    private JTextField itemDetailsField = new JTextField(FEILD_WIDTH);
 
     private JLabel subtotalLabel = new JLabel("Current Subtotal for 0 item(s):");
-    private JTextField subtotalField = new JTextField(40);
+    private JTextField subtotalField = new JTextField(FEILD_WIDTH);
 
     private JLabel cartHeader = new JLabel("Your Shopping Cart Is Currently Empty", SwingConstants.CENTER);
 
@@ -36,7 +37,7 @@ public class GUI extends JFrame implements ActionListener {
     private JTextField cartField5 = new JTextField();
 
     private JButton searchButton = new JButton("Search For Item #1");
-    private JButton addButton = new JButton("Add Item #1 To Cart");
+    private JButton addToCartButton = new JButton("Add Item #1 To Cart");
     private JButton deleteButton = new JButton("Delete Last Item From Cart");
     private JButton checkoutButton = new JButton("Check Out");
     private JButton emptyCartButton = new JButton("Empty Cart – Start A New Order");
@@ -57,13 +58,13 @@ public class GUI extends JFrame implements ActionListener {
         add(buildControlsPanel(), BorderLayout.SOUTH);
 
         // initial states similar to screenshot
-        addButton.setEnabled(false);
+        addToCartButton.setEnabled(false);
         deleteButton.setEnabled(false);
         checkoutButton.setEnabled(false);
 
         // listeners
         searchButton.addActionListener(this);
-        addButton.addActionListener(this);
+        addToCartButton.addActionListener(this);
         deleteButton.addActionListener(this);
         checkoutButton.addActionListener(this);
         emptyCartButton.addActionListener(this);
@@ -167,14 +168,14 @@ public class GUI extends JFrame implements ActionListener {
 
         // Make buttons feel “wide”
         Dimension btnSize = new Dimension(420, 45);
-        for (JButton b : new JButton[]{searchButton, addButton, deleteButton, checkoutButton, emptyCartButton, exitButton}) {
+        for (JButton b : new JButton[]{searchButton, addToCartButton, deleteButton, checkoutButton, emptyCartButton, exitButton}) {
             b.setPreferredSize(btnSize);
             b.setFocusPainted(false);
             b.setFont(b.getFont().deriveFont(Font.PLAIN, 18f));
         }
 
         grid.add(searchButton);
-        grid.add(addButton);
+        grid.add(addToCartButton);
         grid.add(deleteButton);
         grid.add(checkoutButton);
         grid.add(emptyCartButton);
@@ -207,9 +208,29 @@ public class GUI extends JFrame implements ActionListener {
            } else {
                StoreItem selectedItem = inventory.getByID(IDinput);
 
-               CartItem itemToDisplay = new CartItem(inventory, selectedItem, Integer.parseInt(quantInput));
-               itemDetailsField.setText(itemToDisplay.toPreviewString());
+               if (selectedItem != null){
+                   CartItem itemToDisplay = new CartItem(inventory, selectedItem, Integer.parseInt(quantInput));
+                   itemDetailsField.setText(itemToDisplay.toPreviewString());
+
+                   addToCartButton.setEnabled(true);
+                   searchButton.setEnabled(false);
+               } else {
+                   JOptionPane.showMessageDialog(
+                           this,
+                           "This item does not exist in out catalogue."
+                   );
+               }
+
            }
+        }
+
+        if (e.getSource() == addToCartButton) {
+            String IDinput = itemInputField.getText();
+            String quantInput = itemQuantityInputField.getText();
+            StoreItem selectedItem = inventory.getByID(IDinput);
+
+            cart.addToCart(inventory, selectedItem, Integer.parseInt(quantInput));
+
         }
         // hook up the rest of your logic here (search/add/delete/checkout/empty)
     }
