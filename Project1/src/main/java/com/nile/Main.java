@@ -1,5 +1,6 @@
 package com.nile;
 import com.nile.Cart.Cart;
+import com.nile.GUI.GUI;
 import com.nile.inventory.Inventory;
 
 public class Main {

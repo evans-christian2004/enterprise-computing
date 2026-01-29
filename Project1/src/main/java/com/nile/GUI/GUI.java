@@ -1,4 +1,4 @@
-package com.nile;
+package com.nile.GUI;
 
 import com.nile.Cart.Cart;
 import com.nile.Cart.CartItem;
@@ -14,6 +14,7 @@ public class GUI extends JFrame implements ActionListener {
     private final int FEILD_WIDTH = 35;
     private Cart cart;
     private Inventory inventory;
+    private State state;
 
     // --- components ---
     private JLabel itemInputLabel = new JLabel("Enter item ID for Item #1:");
@@ -46,6 +47,7 @@ public class GUI extends JFrame implements ActionListener {
     public GUI(Inventory inventory, Cart cart) {
         this.inventory = inventory;
         this.cart = cart;
+        this.state = new State();
 
         super("Nile.Com - SPRING 2026");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -185,6 +187,11 @@ public class GUI extends JFrame implements ActionListener {
         return p;
     }
 
+   public JTextField[] getCartFields(){
+       JTextField[] fields = { cartField1, cartField2, cartField3, cartField4, cartField5 };
+       return fields;
+   }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == exitButton) {
@@ -210,6 +217,7 @@ public class GUI extends JFrame implements ActionListener {
 
                if (selectedItem != null){
                    CartItem itemToDisplay = new CartItem(inventory, selectedItem, Integer.parseInt(quantInput));
+                   state.setState(itemToDisplay);
                    itemDetailsField.setText(itemToDisplay.toPreviewString());
 
                    addToCartButton.setEnabled(true);
@@ -225,13 +233,28 @@ public class GUI extends JFrame implements ActionListener {
         }
 
         if (e.getSource() == addToCartButton) {
-            String IDinput = itemInputField.getText();
-            String quantInput = itemQuantityInputField.getText();
-            StoreItem selectedItem = inventory.getByID(IDinput);
+            cart.addToCart(state.getState());
+            CartItem[] currentCart = cart.getItems();
+            state.setState(null);
 
-            cart.addToCart(inventory, selectedItem, Integer.parseInt(quantInput));
+            itemInputLabel.setText("Enter item ID for item #" + (currentCart.length+1) + ":");
+            itemInputField.setText("");
+            itemQuantityInputLabel.setText("Enter quantity for item #" + (currentCart.length+1) + ":");
+            itemQuantityInputField.setText("");
 
+            itemDetailsLabel.setText("Details for item #" + (currentCart.length+1) + ":");
+            itemDetailsField.setText("");
+
+            subtotalLabel.setText("Current Subtotal for " + currentCart.length + " Item(s)");
+            subtotalField.setText(Double.toString(cart.getCartTotal()));
+
+            // TODO: make logic for updating buttons and making it so details show for the previosly added item instead of current
+
+
+            for (int i = 0; i < currentCart.length; i++){
+                getCartFields()[i].setText("Item " + (i+1) + " - " + currentCart[i].toCartItemString());
+            }
         }
-        // hook up the rest of your logic here (search/add/delete/checkout/empty)
+        // hook up the rest of your logic (add/delete/checkout/empty)
     }
 }

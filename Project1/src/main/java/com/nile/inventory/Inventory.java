@@ -6,10 +6,9 @@ import java.io.FileReader;
 import java.io.IOException;
 
 public class Inventory {
-    private String path;
+    String path;
     private double[] discounts;
-    private HashMap<String, StoreItem> inventory;
-    private int size;
+    HashMap<String, StoreItem> inventory;
 
     public Inventory(String path, double[] discounts){
         this.path = path;

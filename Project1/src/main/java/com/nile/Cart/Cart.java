@@ -15,13 +15,12 @@ public class Cart {
         this.maxCartSize = maxCartSize;
     }
 
-    public boolean addToCart(Inventory inventory, StoreItem selectedItem, int quantity){
-        if(!selectedItem.isInStock || cartItems.size() >= maxCartSize){
+    public boolean addToCart(CartItem itemToAdd){
+        if(!itemToAdd.product.isInStock || cartItems.size() >= maxCartSize){
             return false;
         } else {
-            CartItem item = new CartItem(inventory, selectedItem, quantity);
-            cartItems.push(item);
-            cartTotal+=item.itemPrice;
+            cartItems.push(itemToAdd);
+            cartTotal+=itemToAdd.product.price;
             return true;
         }
     }
@@ -41,6 +40,6 @@ public class Cart {
     }
 
     public CartItem[] getItems(){
-        return (CartItem[])cartItems.toArray();
+        return cartItems.toArray(new CartItem[0]);
     }
 }

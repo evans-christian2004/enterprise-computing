@@ -19,6 +19,14 @@ public class CartItem {
         }
     }
 
+    // implimenting a cloneing constructor so only copies are stored in the state, idk if im using it yet
+    public CartItem(CartItem original){
+        this.inventory = original.inventory;
+        this.product = original.product;
+        this.quantity = original.quantity;
+        this.itemPrice = original.itemPrice;
+    }
+
     public double getDiscount(StoreItem product){
         if (quantity >= 1 && quantity <= 4) {
             return inventory.getDiscounts()[0];
@@ -36,7 +44,7 @@ public class CartItem {
     }
 
     public String toCartItemString() {
-        return (product.description + ", price ea. " + Double.toString(product.price) + ", qty: " + Integer.toString(quantity));
+        return ("SKU: " + product.getID() + ", Desc: " + product.description + ", Price Ea. " + Double.toString(product.price) + ", Qty: " + Integer.toString(quantity) + ", Total: $" + itemPrice);
     }
 }
 
