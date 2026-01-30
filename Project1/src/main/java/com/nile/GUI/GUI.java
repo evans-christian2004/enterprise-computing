@@ -131,7 +131,7 @@ public class GUI extends JFrame implements ActionListener {
         p.setBackground(Color.BLACK);
 
         cartHeader.setForeground(Color.RED);
-        cartHeader.setFont(cartHeader.getFont().deriveFont(Font.BOLD, 32f));
+        cartHeader.setFont(cartHeader.getFont().deriveFont(Font.BOLD, 24f));
         cartHeader.setBorder(new EmptyBorder(20, 10, 20, 10));
         p.add(cartHeader, BorderLayout.NORTH);
 
@@ -192,6 +192,58 @@ public class GUI extends JFrame implements ActionListener {
        return fields;
    }
 
+   public void updateFields(){
+       CartItem[] currentCart = cart.getItems();
+
+       // updating item input text
+       itemInputLabel.setText("Enter item ID for item #" + (currentCart.length+1) + ":");
+       itemInputField.setText("");
+       itemQuantityInputLabel.setText("Enter quantity for item #" + (currentCart.length+1) + ":");
+       itemQuantityInputField.setText("");
+
+       // updating subtotal text
+       subtotalLabel.setText("Current Subtotal for " + currentCart.length + " Item(s)");
+       subtotalField.setText("$" + cart.getCartTotal());
+
+       // updating Cart header text
+       if(currentCart.length > 0){
+           cartHeader.setText("Your Shopping Cart Currently Contains " + currentCart.length + " Item(s)");
+       } else {
+           cartHeader.setText("Your Shopping Cart is Currently Empty");
+       }
+
+       // updating cart display
+       for (int i = 0; i < cart.getMaxCartSize(); i++){
+           if (i < currentCart.length){
+               getCartFields()[i].setText("  Item " + (i+1) + " - " + currentCart[i].toCartItemString());
+           } else {
+               getCartFields()[i].setText("");
+           }
+
+       }
+
+       // updating buttons
+       searchButton.setText("Search for Item #" + (currentCart.length+1));
+       addToCartButton.setText("Add Item #" + (currentCart.length+1) + " To Cart");
+       if (currentCart.length > 0){
+           deleteButton.setEnabled(true);
+           checkoutButton.setEnabled(true);
+       } else {
+           deleteButton.setEnabled(false);
+           checkoutButton.setEnabled(false);
+       }
+       if (state.getState() == null){
+           searchButton.setEnabled(true);
+           addToCartButton.setEnabled(false);
+       }
+   }
+
+   public void reset(){
+        state.setState(null);
+        cart.emptyCart();
+        updateFields();
+   }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == exitButton) {
@@ -215,18 +267,31 @@ public class GUI extends JFrame implements ActionListener {
            } else {
                StoreItem selectedItem = inventory.getByID(IDinput);
 
-               if (selectedItem != null){
+               if (selectedItem == null) {
+                   JOptionPane.showMessageDialog(
+                           this,
+                           "Item ID " + IDinput + " is not on file"
+                   );
+               } else if(!selectedItem.isInStock) {
+                   JOptionPane.showMessageDialog(
+                           this,
+                           "Sorry... That item is out of stock, please try another item."
+                   );
+               } else if (selectedItem.getStock() < Integer.parseInt(quantInput)) {
+                   JOptionPane.showMessageDialog(
+                           this,
+                           "Insufficient stock, only " + selectedItem.getStock() + " on hand. Please reduce the quantity."
+                   );
+               } else {
+
                    CartItem itemToDisplay = new CartItem(inventory, selectedItem, Integer.parseInt(quantInput));
                    state.setState(itemToDisplay);
+                   itemToDisplay.getProduct().setStock(itemToDisplay.getProduct().getStock() - itemToDisplay.getQuantity());
+                   itemDetailsLabel.setText("Details for item #" + (cart.getItems().length+1) + ":");
                    itemDetailsField.setText(itemToDisplay.toPreviewString());
 
                    addToCartButton.setEnabled(true);
                    searchButton.setEnabled(false);
-               } else {
-                   JOptionPane.showMessageDialog(
-                           this,
-                           "This item does not exist in out catalogue."
-                   );
                }
 
            }
@@ -234,27 +299,20 @@ public class GUI extends JFrame implements ActionListener {
 
         if (e.getSource() == addToCartButton) {
             cart.addToCart(state.getState());
-            CartItem[] currentCart = cart.getItems();
             state.setState(null);
 
-            itemInputLabel.setText("Enter item ID for item #" + (currentCart.length+1) + ":");
-            itemInputField.setText("");
-            itemQuantityInputLabel.setText("Enter quantity for item #" + (currentCart.length+1) + ":");
-            itemQuantityInputField.setText("");
-
-            itemDetailsLabel.setText("Details for item #" + (currentCart.length+1) + ":");
-            itemDetailsField.setText("");
-
-            subtotalLabel.setText("Current Subtotal for " + currentCart.length + " Item(s)");
-            subtotalField.setText(Double.toString(cart.getCartTotal()));
-
-            // TODO: make logic for updating buttons and making it so details show for the previosly added item instead of current
-
-
-            for (int i = 0; i < currentCart.length; i++){
-                getCartFields()[i].setText("Item " + (i+1) + " - " + currentCart[i].toCartItemString());
-            }
+            updateFields();
         }
-        // hook up the rest of your logic (add/delete/checkout/empty)
+
+        if (e.getSource() == emptyCartButton){
+            reset();
+        }
+
+        if (e.getSource() == deleteButton){
+            cart.removeFromCart();
+
+            updateFields();
+        }
+        // hook up the rest of your logic (delete/checkout/empty)
     }
 }

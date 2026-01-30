@@ -1,7 +1,7 @@
 package com.nile.inventory;
 
 public class StoreItem {
-   private String ID;
+   private final String ID;
    public String description;
    public boolean isInStock;
    private int stock;
@@ -21,5 +21,9 @@ public class StoreItem {
 
    public int getStock(){
        return stock;
+   }
+
+   public void setStock(int newStock){
+        stock = newStock;
    }
 }

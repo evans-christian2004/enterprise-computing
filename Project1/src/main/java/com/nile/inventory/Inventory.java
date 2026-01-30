@@ -13,9 +13,13 @@ public class Inventory {
     public Inventory(String path, double[] discounts){
         this.path = path;
         this.discounts = discounts;
-        String line = "";
-        inventory = new HashMap<String, StoreItem>();
+        this.inventory = new HashMap<String, StoreItem>();
+        loadInventory();
 
+    }
+
+    public void loadInventory(){
+        String line = "";
         // reads a given csv file line by line
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             while ((line = br.readLine()) != null) {
@@ -33,6 +37,11 @@ public class Inventory {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void resetInventory(){
+        inventory.clear();
+        loadInventory();
     }
 
     public double[] getDiscounts(){

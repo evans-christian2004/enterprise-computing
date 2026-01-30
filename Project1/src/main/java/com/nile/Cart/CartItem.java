@@ -43,8 +43,16 @@ public class CartItem {
        return (product.getID() + " " + product.description + " " + Double.toString(product.price) + " " + Integer.toString(quantity) + " " + (int)(100 * getDiscount(product)) + "% $" + itemPrice);
     }
 
+    public StoreItem getProduct(){
+        return product;
+    }
+
     public String toCartItemString() {
         return ("SKU: " + product.getID() + ", Desc: " + product.description + ", Price Ea. " + Double.toString(product.price) + ", Qty: " + Integer.toString(quantity) + ", Total: $" + itemPrice);
+    }
+
+    public int getQuantity(){
+        return quantity;
     }
 }
 
