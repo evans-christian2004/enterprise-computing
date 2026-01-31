@@ -2,6 +2,9 @@ package com.nile.Cart;
 import com.nile.inventory.Inventory;
 import com.nile.inventory.StoreItem;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 public class CartItem {
     Inventory inventory;
     StoreItem product;
@@ -27,6 +30,11 @@ public class CartItem {
         this.itemPrice = original.itemPrice;
     }
 
+    public BigDecimal formatPrice(){
+        BigDecimal format = new BigDecimal(itemPrice);
+        return format.setScale(2, RoundingMode.HALF_UP);
+    }
+
     public double getDiscount(StoreItem product){
         if (quantity >= 1 && quantity <= 4) {
             return inventory.getDiscounts()[0];
@@ -40,7 +48,7 @@ public class CartItem {
     }
 
     public String toPreviewString(){
-       return (product.getID() + " " + product.description + " " + Double.toString(product.price) + " " + Integer.toString(quantity) + " " + (int)(100 * getDiscount(product)) + "% $" + itemPrice);
+       return (product.getID() + " " + product.description + " " + Double.toString(product.price) + " " + Integer.toString(quantity) + " " + (int)(100 * getDiscount(product)) + "% $" + formatPrice());
     }
 
     public StoreItem getProduct(){
@@ -48,7 +56,7 @@ public class CartItem {
     }
 
     public String toCartItemString() {
-        return ("SKU: " + product.getID() + ", Desc: " + product.description + ", Price Ea. " + Double.toString(product.price) + ", Qty: " + Integer.toString(quantity) + ", Total: $" + itemPrice);
+        return ("SKU: " + product.getID() + ", Desc: " + product.description + ", Price Ea. " + Double.toString(product.price) + ", Qty: " + Integer.toString(quantity) + ", Total: $" + formatPrice());
     }
 
     public int getQuantity(){

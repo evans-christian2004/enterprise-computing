@@ -2,6 +2,8 @@ package com.nile.Cart;
 import com.nile.inventory.Inventory;
 import com.nile.inventory.StoreItem;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Stack;
 
 public class Cart {
@@ -46,16 +48,22 @@ public class Cart {
         }
     }
 
-    public void emptyCart(){
-        cartItems.clear();
-        cartTotal = 0.00;
-        inventory.resetInventory();
+    public void emptyCart(boolean resetInventory){
+        if (resetInventory){
+            for (int i = 0; i < cartItems.size(); i++){
+                removeFromCart();
+            }
+        } else {
+            cartItems.clear();
+            cartTotal = 0.00;
+        }
+
     }
 
 
-    public double getCartTotal(){
-
-        return cartTotal;
+    public BigDecimal getCartTotal(){
+        BigDecimal format = new BigDecimal(cartTotal);
+        return format.setScale(2, RoundingMode.HALF_UP);
     }
     public int getMaxCartSize() {
         return maxCartSize;

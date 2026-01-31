@@ -240,7 +240,7 @@ public class GUI extends JFrame implements ActionListener {
 
    public void reset(){
         state.setState(null);
-        cart.emptyCart();
+        cart.emptyCart(true);
         updateFields();
    }
 
@@ -313,6 +313,8 @@ public class GUI extends JFrame implements ActionListener {
 
             updateFields();
         }
+
+
         // hook up the rest of your logic (delete/checkout/empty)
     }
 }
