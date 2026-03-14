@@ -7,6 +7,8 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.InputStream;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,8 +22,20 @@ import java.util.concurrent.Executors;
  * Main SQL Client Application - two-tier JDBC GUI.
  */
 public class SQLClientApp extends JFrame {
-    private JTextField dbUrlPropsField;
-    private JTextField userPropsField;
+    private static final String[] DB_URL_PROPERTIES_OPTIONS = {
+            "project3.properties",
+            "bikedb.properties",
+            "operationslog.properties"
+    };
+    private static final String[] USER_PROPERTIES_OPTIONS = {
+            "root.properties",
+            "client1.properties",
+            "client2.properties",
+            "theaccountant.properties"
+    };
+
+    private JComboBox<String> dbUrlPropsCombo;
+    private JComboBox<String> userPropsCombo;
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JButton connectBtn;
@@ -71,14 +85,17 @@ public class SQLClientApp extends JFrame {
         gbc.gridx = 0; gbc.gridy = 0;
         connPanel.add(new JLabel("DB URL Properties:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1;
-        dbUrlPropsField = new JTextField("project3.properties", 25);
-        connPanel.add(dbUrlPropsField, gbc);
+        dbUrlPropsCombo = new JComboBox<>(DB_URL_PROPERTIES_OPTIONS);
+        dbUrlPropsCombo.setSelectedIndex(0);
+        connPanel.add(dbUrlPropsCombo, gbc);
 
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
         connPanel.add(new JLabel("User Properties:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1;
-        userPropsField = new JTextField("root.properties", 25);
-        connPanel.add(userPropsField, gbc);
+        userPropsCombo = new JComboBox<>(USER_PROPERTIES_OPTIONS);
+        userPropsCombo.setSelectedIndex(0);
+        userPropsCombo.addActionListener(e -> maybePopulateCredentialsFromUserProps());
+        connPanel.add(userPropsCombo, gbc);
 
         gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
         connPanel.add(new JLabel("Username:"), gbc);
@@ -91,6 +108,7 @@ public class SQLClientApp extends JFrame {
         gbc.gridx = 1; gbc.weightx = 1;
         passwordField = new JPasswordField(20);
         connPanel.add(passwordField, gbc);
+        maybePopulateCredentialsFromUserProps();
 
         gbc.gridx = 2; gbc.gridy = 0; gbc.gridheight = 2; gbc.weightx = 0;
         connectBtn = new JButton("Connect to Database");
@@ -171,27 +189,43 @@ public class SQLClientApp extends JFrame {
     }
 
     private void connect() {
-        String propsFile = dbUrlPropsField.getText().trim();
-        String user = usernameField.getText().trim();
-        char[] pass = passwordField.getPassword();
-        if (user.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Enter username.");
+        String propsFile = ((String) dbUrlPropsCombo.getSelectedItem());
+        String userPropsFile = ((String) userPropsCombo.getSelectedItem());
+        if (propsFile == null || propsFile.isBlank()) {
+            JOptionPane.showMessageDialog(this, "Select a DB URL properties file.");
             return;
         }
+        String user = usernameField.getText().trim();
+        String pass = new String(passwordField.getPassword());
         try {
             Properties props = loadProperties(propsFile);
             String url = props.getProperty("jdbc.url");
             String driver = props.getProperty("jdbc.driver");
             if (driver != null) Class.forName(driver);
-            connection = DriverManager.getConnection(url, user, new String(pass));
+
+            // If a user properties file contains credentials, let it drive the connection.
+            if (userPropsFile != null && !userPropsFile.isBlank()) {
+                Properties userProps = loadProperties(userPropsFile);
+                String fileUser = firstNonBlank(userProps.getProperty("jdbc.username"), userProps.getProperty("user"));
+                String filePass = firstNonBlank(userProps.getProperty("jdbc.password"), userProps.getProperty("password"));
+                if (fileUser != null) user = fileUser.trim();
+                if (filePass != null) pass = filePass;
+            }
+
+            if (user.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Enter username (or select a user properties file that provides it).");
+                return;
+            }
+
+            connection = DriverManager.getConnection(url, user, pass);
             currentUsername = user;
             connectionStatusLabel.setText(url);
             connectionStatusLabel.setBackground(new Color(200, 255, 200));
             connectBtn.setEnabled(false);
             disconnectBtn.setEnabled(true);
             executeBtn.setEnabled(true);
-            dbUrlPropsField.setEnabled(false);
-            userPropsField.setEnabled(false);
+            dbUrlPropsCombo.setEnabled(false);
+            userPropsCombo.setEnabled(false);
             usernameField.setEnabled(false);
             passwordField.setEnabled(false);
         } catch (Exception ex) {
@@ -211,8 +245,8 @@ public class SQLClientApp extends JFrame {
         connectBtn.setEnabled(true);
         disconnectBtn.setEnabled(false);
         executeBtn.setEnabled(false);
-        dbUrlPropsField.setEnabled(true);
-        userPropsField.setEnabled(true);
+        dbUrlPropsCombo.setEnabled(true);
+        userPropsCombo.setEnabled(true);
         usernameField.setEnabled(true);
         passwordField.setEnabled(true);
     }
@@ -225,7 +259,8 @@ public class SQLClientApp extends JFrame {
     }
 
     private void executeSQL() {
-        String sql = sqlCommandArea.getText().trim();
+        String sql = sqlCommandArea.getText();
+        if (sql != null) sql = sql.trim();
         if (sql.isEmpty()) {
             executionStatusLabel.setText("No command entered.");
             return;
@@ -235,27 +270,149 @@ public class SQLClientApp extends JFrame {
             return;
         }
         try {
-            // Treat leading SELECT as a query; everything else uses executeUpdate.
-            boolean isSelect = sql.toUpperCase().trim().startsWith("SELECT");
-            if (isSelect) {
-                Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery(sql);
-                ResultSetTableModel model = new ResultSetTableModel(rs);
-                resultTable.setModel(model);
-                stmt.close();
-                logOperation(true, false);
-                executionStatusLabel.setText("Query executed successfully. Rows: " + model.getRowCount());
+            List<String> statements = splitSqlStatements(sql);
+            if (statements.isEmpty()) {
+                executionStatusLabel.setText("No command entered.");
+                return;
+            }
+
+            int queries = 0;
+            int updates = 0;
+            int totalRowsAffected = 0;
+            Integer lastQueryRows = null;
+            Integer lastUpdateCount = null;
+
+            // Execute sequentially so multi-statement inputs like "SELECT; INSERT; SELECT;" work.
+            for (String s : statements) {
+                try (Statement stmt = connection.createStatement()) {
+                    boolean hasResultSet = stmt.execute(s);
+                    if (hasResultSet) {
+                        ResultSet rs = stmt.getResultSet();
+                        ResultSetTableModel model = new ResultSetTableModel(rs);
+                        resultTable.setModel(model);
+                        queries++;
+                        lastQueryRows = model.getRowCount();
+                        lastUpdateCount = null;
+                        logOperation(true, false);
+                    } else {
+                        int count = stmt.getUpdateCount();
+                        updates++;
+                        totalRowsAffected += Math.max(count, 0);
+                        lastUpdateCount = count;
+                        lastQueryRows = null;
+                        logOperation(false, true);
+                    }
+                }
+            }
+
+            if (lastQueryRows != null) {
+                executionStatusLabel.setText("Executed " + statements.size() + " statement(s). Last query rows: " + lastQueryRows);
+            } else if (lastUpdateCount != null) {
+                executionStatusLabel.setText("Executed " + statements.size() + " statement(s). Total rows affected: " + totalRowsAffected);
             } else {
-                Statement stmt = connection.createStatement();
-                int count = stmt.executeUpdate(sql);
-                stmt.close();
-                logOperation(false, true);
-                executionStatusLabel.setText("Update successful. Rows affected: " + count);
+                executionStatusLabel.setText("Executed " + statements.size() + " statement(s).");
             }
         } catch (SQLException ex) {
             executionStatusLabel.setText("Error: " + ex.getMessage());
             JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
         }
+    }
+
+    private static List<String> splitSqlStatements(String sqlText) {
+        List<String> out = new ArrayList<>();
+        if (sqlText == null) return out;
+
+        StringBuilder cur = new StringBuilder();
+        boolean inSingle = false;
+        boolean inDouble = false;
+        boolean inBacktick = false;
+        boolean inLineComment = false;
+        boolean inBlockComment = false;
+        boolean escaped = false;
+
+        for (int i = 0; i < sqlText.length(); i++) {
+            char c = sqlText.charAt(i);
+            char next = (i + 1 < sqlText.length()) ? sqlText.charAt(i + 1) : '\0';
+
+            if (inLineComment) {
+                cur.append(c);
+                if (c == '\n') inLineComment = false;
+                continue;
+            }
+            if (inBlockComment) {
+                cur.append(c);
+                if (c == '*' && next == '/') {
+                    cur.append(next);
+                    i++;
+                    inBlockComment = false;
+                }
+                continue;
+            }
+
+            if (!inSingle && !inDouble && !inBacktick) {
+                if (c == '-' && next == '-') {
+                    char after = (i + 2 < sqlText.length()) ? sqlText.charAt(i + 2) : '\0';
+                    if (after == ' ' || after == '\t' || after == '\r' || after == '\n' || after == '\0') {
+                        inLineComment = true;
+                        cur.append(c).append(next);
+                        i++;
+                        continue;
+                    }
+                }
+                if (c == '#') {
+                    inLineComment = true;
+                    cur.append(c);
+                    continue;
+                }
+                if (c == '/' && next == '*') {
+                    inBlockComment = true;
+                    cur.append(c).append(next);
+                    i++;
+                    continue;
+                }
+            }
+
+            if (escaped) {
+                cur.append(c);
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\' && (inSingle || inDouble)) {
+                cur.append(c);
+                escaped = true;
+                continue;
+            }
+
+            if (!inDouble && !inBacktick && c == '\'') {
+                inSingle = !inSingle;
+                cur.append(c);
+                continue;
+            }
+            if (!inSingle && !inBacktick && c == '"') {
+                inDouble = !inDouble;
+                cur.append(c);
+                continue;
+            }
+            if (!inSingle && !inDouble && c == '`') {
+                inBacktick = !inBacktick;
+                cur.append(c);
+                continue;
+            }
+
+            if (!inSingle && !inDouble && !inBacktick && c == ';') {
+                String stmt = cur.toString().trim();
+                if (!stmt.isEmpty()) out.add(stmt);
+                cur.setLength(0);
+                continue;
+            }
+
+            cur.append(c);
+        }
+
+        String tail = cur.toString().trim();
+        if (!tail.isEmpty()) out.add(tail);
+        return out;
     }
 
     private void logOperation(boolean isQuery, boolean isUpdate) {
@@ -328,6 +485,27 @@ public class SQLClientApp extends JFrame {
             p.load(is);
         }
         return p;
+    }
+
+    private void maybePopulateCredentialsFromUserProps() {
+        if (usernameField == null || passwordField == null || userPropsCombo == null) return;
+        String userPropsFile = (String) userPropsCombo.getSelectedItem();
+        if (userPropsFile == null || userPropsFile.isBlank()) return;
+        try {
+            Properties userProps = loadProperties(userPropsFile);
+            String fileUser = firstNonBlank(userProps.getProperty("jdbc.username"), userProps.getProperty("user"));
+            String filePass = firstNonBlank(userProps.getProperty("jdbc.password"), userProps.getProperty("password"));
+            if (fileUser != null && !fileUser.isBlank()) usernameField.setText(fileUser.trim());
+            if (filePass != null) passwordField.setText(filePass);
+        } catch (Exception ignored) {
+            // Ignore invalid properties file selection; connection will surface errors if needed.
+        }
+    }
+
+    private static String firstNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) return a;
+        if (b != null && !b.isBlank()) return b;
+        return null;
     }
 
     public static void main(String[] args) {

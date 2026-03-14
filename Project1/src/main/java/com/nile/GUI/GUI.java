@@ -2,11 +2,21 @@ package com.nile.GUI;
 
 import com.nile.Cart.Cart;
 import com.nile.Cart.CartItem;
+import com.nile.Transaction.Transaction;
 import com.nile.inventory.Inventory;
 import com.nile.inventory.StoreItem;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.time.format.DateTimeFormatter;
 import javax.swing.*;
 import javax.swing.border.*;
 
@@ -15,6 +25,7 @@ public class GUI extends JFrame implements ActionListener {
     private Cart cart;
     private Inventory inventory;
     private State state;
+    private final BigDecimal taxRate;
 
     // --- components ---
     private JLabel itemInputLabel = new JLabel("Enter item ID for Item #1:");
@@ -44,10 +55,11 @@ public class GUI extends JFrame implements ActionListener {
     private JButton emptyCartButton = new JButton("Empty Cart – Start A New Order");
     private JButton exitButton = new JButton("Exit (Close App)");
 
-    public GUI(Inventory inventory, Cart cart) {
+    public GUI(Inventory inventory, Cart cart, double taxRate) {
         this.inventory = inventory;
         this.cart = cart;
         this.state = new State();
+        this.taxRate = new BigDecimal(Double.toString(taxRate));
 
         super("Nile.Com - SPRING 2026");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -130,7 +142,7 @@ public class GUI extends JFrame implements ActionListener {
         p.setLayout(new BorderLayout());
         p.setBackground(Color.BLACK);
 
-        cartHeader.setForeground(Color.RED);
+        cartHeader.setForeground(Color.ORANGE);
         cartHeader.setFont(cartHeader.getFont().deriveFont(Font.BOLD, 24f));
         cartHeader.setBorder(new EmptyBorder(20, 10, 20, 10));
         p.add(cartHeader, BorderLayout.NORTH);
@@ -196,9 +208,9 @@ public class GUI extends JFrame implements ActionListener {
        CartItem[] currentCart = cart.getItems();
 
        // updating item input text
-       itemInputLabel.setText("Enter item ID for item #" + (currentCart.length+1) + ":");
+       itemInputLabel.setText("Enter item ID for item #" + Math.clamp((currentCart.length+1), 0, 5) + ":");
        itemInputField.setText("");
-       itemQuantityInputLabel.setText("Enter quantity for item #" + (currentCart.length+1) + ":");
+       itemQuantityInputLabel.setText("Enter quantity for item #" + Math.clamp((currentCart.length+1), 0, 5) + ":");
        itemQuantityInputField.setText("");
 
        // updating subtotal text
@@ -215,7 +227,7 @@ public class GUI extends JFrame implements ActionListener {
        // updating cart display
        for (int i = 0; i < cart.getMaxCartSize(); i++){
            if (i < currentCart.length){
-               getCartFields()[i].setText("  Item " + (i+1) + " - " + currentCart[i].toCartItemString());
+               getCartFields()[i].setText("  Item " + Math.clamp((i+1), 0, 5) + " - " + currentCart[i].toCartItemString());
            } else {
                getCartFields()[i].setText("");
            }
@@ -223,8 +235,8 @@ public class GUI extends JFrame implements ActionListener {
        }
 
        // updating buttons
-       searchButton.setText("Search for Item #" + (currentCart.length+1));
-       addToCartButton.setText("Add Item #" + (currentCart.length+1) + " To Cart");
+       searchButton.setText("Search for Item #" + Math.clamp((currentCart.length+1), 0, 5));
+       addToCartButton.setText("Add Item #" + Math.clamp((currentCart.length+1), 0, 5) + " To Cart");
        if (currentCart.length > 0){
            deleteButton.setEnabled(true);
            checkoutButton.setEnabled(true);
@@ -242,6 +254,113 @@ public class GUI extends JFrame implements ActionListener {
         state.setState(null);
         cart.emptyCart(true);
         updateFields();
+   }
+
+   private Path ensureTransactionsFile() {
+       Path path = Paths.get("transactions.csv");
+       try {
+           if (!Files.exists(path)) {
+               Files.createFile(path);
+           }
+           return path;
+       } catch (IOException e) {
+           JOptionPane.showMessageDialog(
+                   this,
+                   "Unable to create transactions.csv: " + e.getMessage()
+           );
+           return null;
+       }
+   }
+
+   private boolean writeTransactionToFile(Transaction transaction) {
+       Path path = ensureTransactionsFile();
+       if (path == null) {
+           return false;
+       }
+       try (BufferedWriter writer = Files.newBufferedWriter(path, StandardOpenOption.APPEND)) {
+           for (String line : transaction.getTransactionString()) {
+               writer.write(line);
+               writer.newLine();
+           }
+           writer.newLine();
+           return true;
+       } catch (IOException e) {
+           JOptionPane.showMessageDialog(
+                   this,
+                   "Unable to write transaction: " + e.getMessage()
+           );
+           return false;
+       }
+   }
+
+   private void showFinalInvoice(Transaction transaction) {
+       CartItem[] items = cart.getItems();
+       BigDecimal subtotal = cart.getCartTotal();
+       BigDecimal taxAmount = subtotal.multiply(taxRate).setScale(2, RoundingMode.HALF_UP);
+       BigDecimal orderTotal = subtotal.add(taxAmount).setScale(2, RoundingMode.HALF_UP);
+       int taxPercent = taxRate.multiply(new BigDecimal("100")).intValue();
+       String dateString = transaction.getTime().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy, h:mm:ss a"));
+
+       StringBuilder body = new StringBuilder();
+       body.append("Date: ").append(dateString).append(System.lineSeparator()).append(System.lineSeparator());
+       body.append("Number of line items: ").append(items.length).append(System.lineSeparator()).append(System.lineSeparator());
+       body.append("Item# / ID / Title / Price / Qty / Disc % / Subtotal:").append(System.lineSeparator()).append(System.lineSeparator());
+       for (int i = 0; i < items.length; i++) {
+           CartItem item = items[i];
+           StoreItem product = item.getProduct();
+           int discountPercent = (int) (item.getDiscount(product) * 100);
+           body.append(String.format("%d. %s %s $%.2f %d %d%% $%s",
+                   i + 1,
+                   product.getID(),
+                   product.description,
+                   product.price,
+                   item.getQuantity(),
+                   discountPercent,
+                   item.formatPrice()
+           )).append(System.lineSeparator());
+       }
+       body.append(System.lineSeparator());
+       body.append(String.format("Order subtotal:  $%s", subtotal)).append(System.lineSeparator()).append(System.lineSeparator());
+       body.append(String.format("Tax rate:        %d%%", taxPercent)).append(System.lineSeparator()).append(System.lineSeparator());
+       body.append(String.format("Tax amount:      $%s", taxAmount)).append(System.lineSeparator()).append(System.lineSeparator());
+       body.append(String.format("ORDER TOTAL:     $%s", orderTotal)).append(System.lineSeparator()).append(System.lineSeparator());
+       body.append("Thanks for shopping at Nile Dot Com!");
+
+       JTextArea textArea = new JTextArea(body.toString());
+       textArea.setEditable(false);
+       textArea.setCaretPosition(0);
+       textArea.setBackground(new Color(245, 245, 245));
+       textArea.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
+
+       JScrollPane scrollPane = new JScrollPane(textArea);
+       scrollPane.setPreferredSize(new Dimension(640, 520));
+
+       JOptionPane.showMessageDialog(
+               this,
+               scrollPane,
+               "Nile Dot Com - FINAL INVOICE",
+               JOptionPane.INFORMATION_MESSAGE
+       );
+   }
+
+   private void completeTransaction() {
+       if (cart.getItems().length == 0) {
+           JOptionPane.showMessageDialog(
+                   this,
+                   "Your cart is empty."
+           );
+           return;
+       }
+
+       Transaction transaction = new Transaction(cart, inventory, taxRate.doubleValue());
+       if (!writeTransactionToFile(transaction)) {
+           return;
+       }
+
+       showFinalInvoice(transaction);
+       cart.emptyCart(false);
+       state.setState(null);
+       updateFields();
    }
 
     @Override
@@ -314,6 +433,9 @@ public class GUI extends JFrame implements ActionListener {
             updateFields();
         }
 
+        if (e.getSource() == checkoutButton){
+            completeTransaction();
+        }
 
         // hook up the rest of your logic (delete/checkout/empty)
     }

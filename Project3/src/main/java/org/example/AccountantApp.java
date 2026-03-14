@@ -202,7 +202,7 @@ public class AccountantApp extends JFrame {
             return;
         }
         // Enforce read-only access at the UI layer as a second line of defense.
-        if (!sql.toUpperCase().trim().startsWith("SELECT")) {
+        if (!isSelectOrWithQuery(sql)) {
             JOptionPane.showMessageDialog(this, "Accountant application allows SELECT only.");
             return;
         }
@@ -221,6 +221,14 @@ public class AccountantApp extends JFrame {
             executionStatusLabel.setText("Error: " + ex.getMessage());
             JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
         }
+    }
+
+    private static boolean isSelectOrWithQuery(String sql) {
+        if (sql == null) return false;
+        String s = sql.trim();
+        while (s.startsWith("(")) s = s.substring(1).trim();
+        String u = s.toUpperCase();
+        return u.startsWith("SELECT") || u.startsWith("WITH");
     }
 
     public static void main(String[] args) {

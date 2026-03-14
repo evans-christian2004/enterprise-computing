@@ -15,7 +15,7 @@ from teams
 where bikename = "Colnago";
                    
 # Command 3 - project3:
-#   Query: List the names of the riders who won the World Championship for Elite Women and Elite Men in 2025.
+#   Query: List the names of the riders who won the World Championship for Elite Women and Elite Men in 2026.
 (select ridername
 from racewinners
 where  racename = 'World Championship - Elite Women' and raceyear = 2025)
