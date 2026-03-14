@@ -8,14 +8,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Name: [Your Name]
+ * Name: Christian Evans
  * Course: CNT 4714 - Spring 2026
  * Assignment: Project 3
  * Date: March 2026
- * <p>
  * Table model for displaying ResultSet data in a JTable.
  * Based on course materials DisplayQueryResults/ResultSetTableModel pattern.
- * <p>
  * This model materializes the entire {@link ResultSet} into memory so it can be displayed after the JDBC
  * statement/connection has moved on to subsequent commands.
  */

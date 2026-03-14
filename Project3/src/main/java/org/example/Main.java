@@ -1,11 +1,10 @@
 package org.example;
 
 /**
- * Name: [Your Name]
+ * Name: Christian Evans
  * Course: CNT 4714 - Spring 2026
  * Assignment: Project 3
  * Date: March 2026
- * <p>
  * Launcher for Project 3 applications.
  * Run with arg "accountant" to start Accountant App, otherwise Main SQL Client.
  * Example: `java -jar Project3.jar accountant`

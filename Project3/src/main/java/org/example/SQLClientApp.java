@@ -14,13 +14,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Name: [Your Name]
+ * Name: Christian Evans
  * Course: CNT 4714 - Spring 2026
  * Assignment: Project 3
  * Date: March 2026
- * <p>
  * Main SQL Client Application - two-tier JDBC GUI.
- * <p>
  * Implementation notes:
  * - "DB URL Properties" selects a properties file that supplies at least `jdbc.url` and optionally `jdbc.driver`.
  * - "User Properties" may supply credentials (`jdbc.username`/`jdbc.password`); otherwise the Username/Password

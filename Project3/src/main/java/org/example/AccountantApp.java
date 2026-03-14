@@ -10,11 +10,10 @@ import java.sql.*;
 import java.util.Properties;
 
 /**
- * Name: [Your Name]
+ * Name: Christian Evans
  * Course: CNT 4714 - Spring 2026
  * Assignment: Project 3
  * Date: March 2026
- * <p>
  * Accountant Application - read-only access to operationslog database.
  * The accountant UI blocks non-SELECT statements as a safety measure; it also permits leading parentheses and CTEs
  * (WITH ...) so users can paste in more complex read-only queries.
