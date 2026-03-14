@@ -20,8 +20,16 @@ import java.util.concurrent.Executors;
  * Date: March 2026
  * <p>
  * Main SQL Client Application - two-tier JDBC GUI.
+ * <p>
+ * Implementation notes:
+ * - "DB URL Properties" selects a properties file that supplies at least `jdbc.url` and optionally `jdbc.driver`.
+ * - "User Properties" may supply credentials (`jdbc.username`/`jdbc.password`); otherwise the Username/Password
+ *   fields are used.
+ * - Successful queries/updates are logged asynchronously to the `operationslog` database using `applog.properties`
+ *   (not selectable from the UI).
  */
 public class SQLClientApp extends JFrame {
+    // Fixed dropdown values per assignment requirements.
     private static final String[] DB_URL_PROPERTIES_OPTIONS = {
             "project3.properties",
             "bikedb.properties",
@@ -30,8 +38,7 @@ public class SQLClientApp extends JFrame {
     private static final String[] USER_PROPERTIES_OPTIONS = {
             "root.properties",
             "client1.properties",
-            "client2.properties",
-            "theaccountant.properties"
+            "client2.properties"
     };
 
     private JComboBox<String> dbUrlPropsCombo;
@@ -306,11 +313,11 @@ public class SQLClientApp extends JFrame {
             }
 
             if (lastQueryRows != null) {
-                executionStatusLabel.setText("Executed " + statements.size() + " statement(s). Last query rows: " + lastQueryRows);
+                executionStatusLabel.setText("Executed " + statements.size() + " statement(s). Queries: " + queries + ", Updates: " + updates + ". Last query rows: " + lastQueryRows);
             } else if (lastUpdateCount != null) {
-                executionStatusLabel.setText("Executed " + statements.size() + " statement(s). Total rows affected: " + totalRowsAffected);
+                executionStatusLabel.setText("Executed " + statements.size() + " statement(s). Queries: " + queries + ", Updates: " + updates + ". Total rows affected: " + totalRowsAffected);
             } else {
-                executionStatusLabel.setText("Executed " + statements.size() + " statement(s).");
+                executionStatusLabel.setText("Executed " + statements.size() + " statement(s). Queries: " + queries + ", Updates: " + updates + ".");
             }
         } catch (SQLException ex) {
             executionStatusLabel.setText("Error: " + ex.getMessage());
@@ -318,6 +325,13 @@ public class SQLClientApp extends JFrame {
         }
     }
 
+    /**
+     * Splits a SQL text block into individual statements (semicolon-delimited) while attempting to ignore semicolons
+     * inside quoted strings, identifier quotes, and comments.
+     * <p>
+     * Supported comment styles: `-- ...`, `# ...`, and `/* ... *\/`.
+     * This is not a full SQL parser, but it is sufficient for common multi-statement inputs in this course.
+     */
     private static List<String> splitSqlStatements(String sqlText) {
         List<String> out = new ArrayList<>();
         if (sqlText == null) return out;
@@ -455,6 +469,10 @@ public class SQLClientApp extends JFrame {
         ps.close();
     }
 
+    /**
+     * Loads a properties file either from the application classpath (preferred) or from a filesystem path.
+     * This supports running in IDEs (resources on classpath) and also ad-hoc external properties files.
+     */
     private Properties loadProperties(String name) throws java.io.IOException {
         Properties p = new Properties();
         // Try classpath first so bundled resources work, then fall back to a file path.
@@ -478,6 +496,9 @@ public class SQLClientApp extends JFrame {
         }
     }
 
+    /**
+     * Loads a properties file strictly from the classpath. Used for hidden app-level configuration.
+     */
     private Properties loadPropertiesFromResource(String name) throws java.io.IOException {
         Properties p = new Properties();
         try (InputStream is = getClass().getResourceAsStream("/" + name)) {

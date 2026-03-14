@@ -15,6 +15,9 @@ import java.util.List;
  * <p>
  * Table model for displaying ResultSet data in a JTable.
  * Based on course materials DisplayQueryResults/ResultSetTableModel pattern.
+ * <p>
+ * This model materializes the entire {@link ResultSet} into memory so it can be displayed after the JDBC
+ * statement/connection has moved on to subsequent commands.
  */
 public class ResultSetTableModel extends AbstractTableModel {
     private final List<Object[]> rows = new ArrayList<>();

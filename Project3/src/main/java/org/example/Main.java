@@ -8,6 +8,7 @@ package org.example;
  * <p>
  * Launcher for Project 3 applications.
  * Run with arg "accountant" to start Accountant App, otherwise Main SQL Client.
+ * Example: `java -jar Project3.jar accountant`
  */
 public class Main {
     public static void main(String[] args) {
